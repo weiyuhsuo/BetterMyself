@@ -1,6 +1,10 @@
+import SwiftData
 import SwiftUI
 
 struct EntryDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
     let entry: Entry
 
     var body: some View {
@@ -24,6 +28,32 @@ struct EntryDetailView: View {
         .background(Color.betterBackground)
         .navigationTitle("这一刻")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(role: .destructive) {
+                        deleteEntry()
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(Color.betterText)
+                }
+                .accessibilityLabel("更多选项")
+            }
+        }
+    }
+
+    private func deleteEntry() {
+        modelContext.delete(entry)
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+        }
     }
 }
 

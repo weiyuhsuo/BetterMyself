@@ -3,14 +3,16 @@ import SwiftUI
 
 struct ComposeView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Entry.createdAt, order: .reverse) private var entries: [Entry]
     @FocusState private var isInputFocused: Bool
 
     @State private var text = ""
     @State private var editorHeight: CGFloat = 104
     @State private var feedback: String?
     @State private var feedbackTask: Task<Void, Never>?
+    @State private var reflectionTrigger = 0
 
-    private let feedbackMessages = ["收好了", "放在这里了", "嗯，我记下来了"]
+    private let feedbackMessage = "我记下来了"
     private let minEditorHeight: CGFloat = 104
     private let maxEditorHeight: CGFloat = 260
 
@@ -20,6 +22,10 @@ struct ComposeView: View {
 
     private var canSave: Bool {
         !trimmedText.isEmpty
+    }
+
+    private var todaysEntries: [Entry] {
+        entries.filter { Calendar.current.isDateInToday($0.createdAt) }
     }
 
     var body: some View {
@@ -61,6 +67,9 @@ struct ComposeView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                             .disabled(!canSave)
                         }
+
+                        AIReflectionView(entries: todaysEntries, trigger: reflectionTrigger)
+                            .padding(.top, 18)
                     }
                     .padding(.top, 42)
                     .frame(maxWidth: .infinity)
@@ -128,6 +137,7 @@ struct ComposeView: View {
         do {
             try modelContext.save()
             text = ""
+            reflectionTrigger += 1
             showFeedback()
             isInputFocused = true
         } catch {
@@ -139,7 +149,7 @@ struct ComposeView: View {
         feedbackTask?.cancel()
 
         withAnimation(.easeOut(duration: 0.22)) {
-            feedback = feedbackMessages.randomElement()
+            feedback = feedbackMessage
         }
 
         feedbackTask = Task {
